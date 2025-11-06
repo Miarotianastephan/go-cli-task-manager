@@ -1,6 +1,21 @@
 package main
 
-import "fmt"
+import (
+	"encoding/json"
+	"fmt"
+	"os"
+)
+
+// Utils that used to manage operations with task interfaces
+func TaskUtils(taskSavePath string, deletedTaskSavePath string) *TaskManager {
+	tm := &TaskManager{
+		Tasks:          []Task{},
+		FilePath:       taskSavePath,
+		DeleteFilePath: deletedTaskSavePath,
+	}
+	tm.Load()
+	return tm
+}
 
 func helpUserInterface() {
 	fmt.Println("\n📋 Task Manager CLI")
@@ -18,9 +33,36 @@ func helpUserInterface() {
 	fmt.Println("  task add \"Buy groceries\"")
 	fmt.Println("  task add \"Learn Go\" -d \"Study structs and methods\"")
 	fmt.Println("  task add \"Meeting\" -d \"Discuss project\" -date 2025-10-30")
-	fmt.Println("═══════════════════════════════════════\n")
+	fmt.Println("═══════════════════════════════════════")
 }
 
 func isFlag(arg string) bool {
 	return len(arg) > 1 && arg[0] == '-'
+}
+
+func (tm *TaskManager) ShowDeleted() {
+	deletedTasks := []Task{}
+	deletedData, err := os.ReadFile(tm.DeleteFilePath)
+	if err != nil {
+		fmt.Println("No deleted tasks found.")
+		return
+	}
+
+	err = json.Unmarshal(deletedData, &deletedTasks)
+	if err != nil || len(deletedTasks) == 0 {
+		fmt.Println("No deleted tasks found.")
+		return
+	}
+
+	fmt.Println("\n🗑️  Deleted Tasks History:")
+	fmt.Println("─────────────────────────────────────────")
+	for _, task := range deletedTasks {
+		fmt.Printf("[%s] %d. %s\n", task.Status, task.ID, task.Title)
+		if task.Description != "" {
+			fmt.Printf("   📄 %s\n", task.Description)
+		}
+		fmt.Printf("   📅 Created: %s\n", task.CreatedAt.Format("2006-01-02 15:04"))
+		fmt.Println()
+	}
+	fmt.Println("─────────────────────────────────────────")
 }

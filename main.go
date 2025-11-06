@@ -8,17 +8,6 @@ import (
 	"time"
 )
 
-// NewTaskManager creates a new task manager
-func NewTaskManager(filepath string, deletepath string) *TaskManager {
-	tm := &TaskManager{
-		Tasks:          []Task{},
-		FilePath:       filepath,
-		DeleteFilePath: deletepath,
-	}
-	tm.Load()
-	return tm
-}
-
 // Load reads tasks from the JSON file
 func (tm *TaskManager) Load() error {
 	data, err := os.ReadFile(tm.FilePath)
@@ -32,19 +21,11 @@ func (tm *TaskManager) Load() error {
 }
 
 // Save writes tasks to the JSON file
-//
-//	func (tm *TaskManager) Save(isDeleting bool) error {
-//		data, err := json.MarshalIndent(tm.Tasks, "", "  ")
-//		if err != nil {
-//			return err
-//		}
-//		return os.WriteFile(tm.FilePath, data, 0644)
-//	}
 func (tm *TaskManager) Save(isDeleting bool) error {
 	filePath := tm.FilePath
-	if isDeleting {
-		filePath = tm.DeleteFilePath
-	}
+	// if isDeleting {
+	// 	filePath = tm.DeleteFilePath
+	// }
 
 	data, err := json.MarshalIndent(tm.Tasks, "", "  ")
 	if err != nil {
@@ -123,18 +104,7 @@ func (tm *TaskManager) Complete(identifier string) error {
 	return fmt.Errorf("task with title '%s' not found", identifier)
 }
 
-// Delete removes a task
-//
-//	func (tm *TaskManager) Delete(id int) error {
-//		for i, task := range tm.Tasks {
-//			if task.ID == id {
-//				tm.Tasks = append(tm.Tasks[:i], tm.Tasks[i+1:]...)
-//				fmt.Printf("🗑️  Task %d deleted!\n", id)
-//				return tm.Save()
-//			}
-//		}
-//		return fmt.Errorf("task with ID %d not found", id)
-//	}
+// Delete removes a task by id and save into deleted tasks history
 func (tm *TaskManager) Delete(id int) error {
 	for i, task := range tm.Tasks {
 		if task.ID == id {
@@ -163,32 +133,6 @@ func (tm *TaskManager) Delete(id int) error {
 	}
 	return fmt.Errorf("task with ID %d not found", id)
 }
-func (tm *TaskManager) ShowDeleted() {
-	deletedTasks := []Task{}
-	deletedData, err := os.ReadFile(tm.DeleteFilePath)
-	if err != nil {
-		fmt.Println("No deleted tasks found.")
-		return
-	}
-
-	err = json.Unmarshal(deletedData, &deletedTasks)
-	if err != nil || len(deletedTasks) == 0 {
-		fmt.Println("No deleted tasks found.")
-		return
-	}
-
-	fmt.Println("\n🗑️  Deleted Tasks History:")
-	fmt.Println("─────────────────────────────────────────")
-	for _, task := range deletedTasks {
-		fmt.Printf("[%s] %d. %s\n", task.Status, task.ID, task.Title)
-		if task.Description != "" {
-			fmt.Printf("   📄 %s\n", task.Description)
-		}
-		fmt.Printf("   📅 Created: %s\n", task.CreatedAt.Format("2006-01-02 15:04"))
-		fmt.Println()
-	}
-	fmt.Println("─────────────────────────────────────────\n")
-}
 
 // Clear removes all tasks
 func (tm *TaskManager) Clear() error {
@@ -198,10 +142,9 @@ func (tm *TaskManager) Clear() error {
 }
 
 func main() {
-	// Store tasks.json in the current directory
-	taskFile := "tasks.json"
-	deletePathFile := "delTask.json"
-	tm := NewTaskManager(taskFile, deletePathFile)
+	// Initialize TaskManager
+	taskSavePath, deletedTaskSavePath := "taskSaved.json", "taskDeleted.json"
+	tm := TaskUtils(taskSavePath, deletedTaskSavePath)
 
 	if len(os.Args) < 2 {
 		helpUserInterface()
